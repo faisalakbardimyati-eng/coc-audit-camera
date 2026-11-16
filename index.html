@@ -6,189 +6,84 @@
 <meta name="theme-color" content="#10213f">
 <title>COC Builder • Kamera Audit</title>
 <style>
-:root{font-family:Arial,sans-serif;color:#172033;background:#f2f5f9}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh}
-header{background:#10213f;color:#fff;padding:16px 18px}
-header b{font-size:18px}
-main{max-width:760px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid #d9e1ec;border-radius:16px;padding:16px;margin:0 0 14px;box-shadow:0 3px 14px #14233b0b}
-h1{font-size:20px;margin:0 0 6px}
-p{line-height:1.45;color:#536176}
-.meta{font-size:13px;margin:0}
-video{width:100%;max-height:62vh;object-fit:cover;background:#101827;border-radius:12px;display:block}
-.preview{width:100%;max-height:62vh;object-fit:contain;background:#101827;border-radius:12px;display:block}
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#172033;font:16px Arial,sans-serif}
+header{background:#10213f;color:white;padding:16px;font-weight:700}
+main{max-width:620px;margin:auto;padding:14px}
+.card{background:#fff;border:1px solid #d9e1ec;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 3px 14px #14233b0b}
+h1{font-size:20px;margin:0 0 6px}p{font-size:13px;line-height:1.45;color:#536176}
+#meta{margin:8px 0 12px;color:#475569;font-size:13px}
+#status{padding:10px 12px;border-radius:9px;background:#edf3ff;color:#254b9b}
+video,img{width:100%;max-height:62vh;aspect-ratio:4/3;object-fit:contain;background:#101827;border-radius:12px;display:block}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-button{border:0;border-radius:10px;padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer}
-.primary{background:#2457df;color:#fff;flex:1}
-.secondary{background:#e8edf5;color:#172033}
-.danger{background:#fee2e2;color:#991b1b}
-button:disabled{opacity:.45;cursor:not-allowed}
-.status{font-size:13px;padding:10px 12px;border-radius:9px;background:#edf3ff;color:#254b9b}
-.hidden{display:none!important}
-label{font-size:13px;font-weight:700;display:block;margin:12px 0 6px}
-select{padding:10px;border:1px solid #cbd5e1;border-radius:8px;width:100%;font-size:15px}
-.small{font-size:12px;color:#667085}
-footer{text-align:center;color:#778196;font-size:12px;padding:12px}
+button{border:0;border-radius:10px;padding:13px 15px;font-weight:700;font-size:15px;cursor:pointer}
+.primary{background:#2457df;color:white;flex:1}.secondary{background:#e8edf5;color:#172033}
+button:disabled{opacity:.45;cursor:not-allowed}.hidden{display:none!important}
+input{display:none}.filebtn{display:block;text-align:center;background:#e8edf5;color:#172033;border-radius:10px;padding:13px;font-weight:700}
 </style>
 </head>
 <body>
-<header><b>📷 COC Builder — Kamera Audit Toko</b></header>
+<header>📷 COC Builder — Kamera Audit Toko</header>
 <main>
-  <section class="card">
-    <h1 id="heading">Kamera Audit</h1>
-    <p class="meta" id="context">Menyiapkan sesi kamera…</p>
-    <p class="status" id="status">Halaman ini menerima permintaan foto dari COC Builder.</p>
-    <label for="cameraSelect">Kamera</label>
-    <select id="cameraSelect"><option value="">Kamera belakang (otomatis)</option></select>
-  </section>
-  <section class="card">
-    <video id="video" autoplay playsinline muted></video>
-    <img id="preview" class="preview hidden" alt="Pratinjau foto audit">
-    <canvas id="canvas" class="hidden"></canvas>
-    <div class="row" id="captureActions">
-      <button class="primary" id="startBtn">Aktifkan kamera</button>
-      <button class="secondary" id="switchBtn" disabled>Ganti kamera</button>
-    </div>
-    <div class="row hidden" id="reviewActions">
-      <button class="secondary" id="retakeBtn">Ambil ulang</button>
-      <button class="primary" id="sendBtn">Gunakan foto ini</button>
-    </div>
-    <p class="small">Gunakan kamera belakang. Foto akan dikirim langsung ke tab COC Builder yang membuka halaman ini. Foto tidak diunggah ke repository GitHub.</p>
-  </section>
-  <footer>COC Builder • Halaman kamera HTTPS</footer>
+<section class="card">
+<h1>Foto audit</h1>
+<div id="meta">Membuka kamera…</div>
+<div id="status" role="status">Meminta izin kamera HP. Jika diminta, pilih Izinkan.</div>
+</section>
+<section class="card">
+<video id="video" autoplay playsinline muted></video>
+<img id="preview" class="hidden" alt="Pratinjau foto audit">
+<canvas id="canvas" class="hidden"></canvas>
+<div class="row" id="cameraActions">
+<button class="primary" id="start">Buka kamera</button>
+<button class="secondary" id="switch" disabled>Ganti kamera</button>
+</div>
+<div class="row hidden" id="reviewActions">
+<button class="secondary" id="retake">Ambil ulang</button>
+<button class="primary" id="send">Gunakan foto ini</button>
+</div>
+<div class="row"><label class="filebtn" for="file">Pilih foto dari galeri</label><input id="file" type="file" accept="image/*" capture="environment"></div>
+<p>Foto akan dikirim kembali ke tab COC Builder yang membuka halaman ini. Foto tidak diunggah ke repository GitHub.</p>
+</section>
 </main>
 <script>
 (() => {
-  "use strict";
-  const params = new URLSearchParams(location.search);
-  const targetOrigin = params.get("target");
-  const token = params.get("token");
-  const task = params.get("task") || "Foto audit";
-  const store = params.get("store") || "";
-  const bay = params.get("bay") || "";
-  const step = params.get("step") || "before";
-  const video = document.getElementById("video");
-  const preview = document.getElementById("preview");
-  const canvas = document.getElementById("canvas");
-  const statusEl = document.getElementById("status");
-  const select = document.getElementById("cameraSelect");
-  const startBtn = document.getElementById("startBtn");
-  const switchBtn = document.getElementById("switchBtn");
-  const captureActions = document.getElementById("captureActions");
-  const reviewActions = document.getElementById("reviewActions");
-  let stream = null, devices = [], currentDevice = "", imageData = "";
-
-  document.getElementById("heading").textContent = task;
-  document.getElementById("context").textContent =
-    (store ? "Toko: " + store : "Sesi kamera") + (bay ? " • Bay: " + bay : "") +
-    " • Tahap: " + step.toUpperCase();
-
-  function setStatus(s, bad=false) {
-    statusEl.textContent = s;
-    statusEl.style.background = bad ? "#fff0f0" : "#edf3ff";
-    statusEl.style.color = bad ? "#9b2525" : "#254b9b";
-  }
-  function stopCamera() {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    stream = null;
-    video.srcObject = null;
-  }
-  async function listCameras() {
-    try {
-      devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
-      const old = select.value;
-      select.innerHTML = '<option value="">Kamera belakang (otomatis)</option>';
-      devices.forEach((d,i) => {
-        const o = document.createElement("option");
-        o.value = d.deviceId;
-        o.textContent = d.label || ("Kamera " + (i+1));
-        select.appendChild(o);
-      });
-      if (old && devices.some(d => d.deviceId === old)) select.value = old;
-    } catch {}
-  }
-  async function startCamera(deviceId="") {
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      setStatus("Kamera memerlukan HTTPS dan izin kamera browser. Buka halaman GitHub Pages dengan https://.", true);
-      return;
-    }
-    stopCamera();
-    try {
-      const videoConstraints = deviceId
-        ? {deviceId:{exact:deviceId}}
-        : {facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}};
-      stream = await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraints});
-      video.srcObject = stream;
-      await video.play();
-      const track = stream.getVideoTracks()[0];
-      currentDevice = track.getSettings().deviceId || deviceId || "";
-      await listCameras();
-      if (currentDevice) select.value = currentDevice;
-      startBtn.textContent = "Ambil foto";
-      startBtn.onclick = capture;
-      switchBtn.disabled = devices.length < 2;
-      setStatus("Kamera aktif. Pastikan objek audit terlihat jelas, lalu ambil foto.");
-    } catch (e) {
-      setStatus("Tidak dapat membuka kamera: " + (e.message || e.name) + ". Periksa izin kamera dan coba lagi.", true);
-    }
-  }
-  function capture() {
-    if (!stream || !video.videoWidth) return;
-    const maxW = 1600, scale = Math.min(1, maxW / video.videoWidth);
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
-    const ctx = canvas.getContext("2d", {alpha:false});
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    imageData = canvas.toDataURL("image/jpeg",0.82);
-    preview.src = imageData;
-    preview.classList.remove("hidden");
-    video.classList.add("hidden");
-    captureActions.classList.add("hidden");
-    reviewActions.classList.remove("hidden");
-    setStatus("Pratinjau foto siap. Pilih Gunakan foto ini untuk mengirim ke COC Builder.");
-  }
-  startBtn.addEventListener("click", () => startCamera(select.value));
-  select.addEventListener("change", () => startCamera(select.value));
-  switchBtn.addEventListener("click", async () => {
-    if (!devices.length) return;
-    const idx = devices.findIndex(d => d.deviceId === currentDevice);
-    const next = devices[(idx + 1) % devices.length];
-    await startCamera(next.deviceId);
-  });
-  document.getElementById("retakeBtn").addEventListener("click", () => {
-    imageData = "";
-    preview.classList.add("hidden");
-    video.classList.remove("hidden");
-    reviewActions.classList.add("hidden");
-    captureActions.classList.remove("hidden");
-    startBtn.textContent = "Ambil foto";
-    startBtn.onclick = capture;
-    setStatus("Silakan ambil ulang foto.");
-  });
-  document.getElementById("sendBtn").addEventListener("click", () => {
-    if (!imageData) return;
-    if (!window.opener || window.opener.closed) {
-      setStatus("Tab COC Builder tidak ditemukan. Tutup halaman ini, lalu buka kamera dari tombol di COC Builder.", true);
-      return;
-    }
-    window.opener.postMessage({
-      type:"COC_AUDIT_CAMERA_RESULT",
-      token, store, bay, step, image:imageData, capturedAt:new Date().toISOString()
-    }, targetOrigin || "*");
-    setStatus("Foto dikirim ke COC Builder. Anda dapat kembali ke tab aplikasi.");
-    document.getElementById("sendBtn").disabled = true;
-    stopCamera();
-    setTimeout(() => window.close(), 900);
-  });
-  window.addEventListener("pagehide", stopCamera);
-  if (!token || !targetOrigin || !/^https?:\/\//.test(targetOrigin)) {
-    setStatus("Halaman dibuka tanpa sesi dari COC Builder. Buka kamera melalui tombol Audit Toko di aplikasi.", true);
-    startBtn.disabled = true;
-  } else {
-    setStatus("Siap menerima sesi kamera. Tekan Aktifkan kamera dan izinkan akses kamera.");
-  }
+"use strict";
+const q=new URLSearchParams(location.search), token=q.get("token")||"", target=q.get("target")||"";
+const title=q.get("title")||"Foto audit", store=q.get("store")||"", bay=q.get("bay")||"", step=q.get("step")||"before";
+const $=id=>document.getElementById(id), video=$("video"), preview=$("preview"), canvas=$("canvas");
+const statusEl=$("status"), cameraActions=$("cameraActions"), reviewActions=$("reviewActions");
+let stream=null, photo="", devices=[], activeId="";
+$("meta").textContent=title+(store?" • Toko "+store:"")+" • "+step.toUpperCase();
+function status(m,bad=false){statusEl.textContent=m;statusEl.style.background=bad?"#fff0f0":"#edf3ff";statusEl.style.color=bad?"#9b2525":"#254b9b"}
+function stop(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null}
+async function listDevices(){try{devices=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==="videoinput");const t=stream&&stream.getVideoTracks()[0];activeId=t?t.getSettings().deviceId||"":activeId;$("switch").disabled=devices.length<2}catch{}}
+async function start(deviceId=""){
+ if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){status("Kamera membutuhkan HTTPS dan browser yang mendukung akses kamera.",true);return}
+ stop();
+ try{
+  const v=deviceId?{deviceId:{exact:deviceId}}:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}};
+  stream=await navigator.mediaDevices.getUserMedia({audio:false,video:v});video.srcObject=stream;video.classList.remove("hidden");preview.classList.add("hidden");await video.play();await listDevices();
+  cameraActions.classList.remove("hidden");reviewActions.classList.add("hidden");$("start").textContent="Ambil foto";status("Kamera aktif. Arahkan kamera ke rak, lalu tekan Ambil foto.");
+ }catch(e){status("Kamera belum bisa dibuka: "+(e.name||"")+" — "+(e.message||"Periksa izin kamera.")+". Tekan Buka kamera untuk mencoba lagi atau pilih foto dari galeri.",true);$("start").textContent="Coba buka kamera"}
+}
+function showPhoto(data){photo=data;stop();preview.src=photo;preview.classList.remove("hidden");video.classList.add("hidden");cameraActions.classList.add("hidden");reviewActions.classList.remove("hidden");status("Foto siap. Tekan Gunakan foto ini untuk mengirim ke COC Builder.")}
+function capture(){if(!stream||!video.videoWidth)return;const s=Math.min(1,1600/video.videoWidth);canvas.width=Math.round(video.videoWidth*s);canvas.height=Math.round(video.videoHeight*s);canvas.getContext("2d",{alpha:false}).drawImage(video,0,0,canvas.width,canvas.height);showPhoto(canvas.toDataURL("image/jpeg",.84))}
+$("start").onclick=()=>stream?capture():start();
+$("switch").onclick=async()=>{if(devices.length<2)return;const i=devices.findIndex(d=>d.deviceId===activeId);await start(devices[(i+1)%devices.length].deviceId)};
+$("retake").onclick=()=>{photo="";start()};
+$("file").onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>showPhoto(r.result);r.readAsDataURL(f)};
+$("send").onclick=()=>{
+ if(!photo)return;
+ if(token&&target&&window.opener&&!window.opener.closed){
+  window.opener.postMessage({type:"COC_AUDIT_CAMERA_RESULT",token,image:photo,store,bay,step,capturedAt:new Date().toISOString()},target);
+  status("Foto dikirim ke COC Builder. Kembali ke tab aplikasi untuk crop dan simpan.");$("send").disabled=true;setTimeout(()=>window.close(),900);
+ }else{
+  const a=document.createElement("a");a.href=photo;a.download="COC-Audit-"+step+"-"+Date.now()+".jpg";a.click();
+  status("Halaman dibuka langsung tanpa sesi COC Builder. Foto diunduh ke HP. Untuk menyimpan otomatis ke audit, buka kamera dari tombol Kamera HP pada bay COC Builder.");
+ }
+};
+window.addEventListener("pagehide",stop);
+window.addEventListener("load",()=>setTimeout(()=>start(),250));
 })();
 </script>
-</body>
-</html>
+</body></html>
