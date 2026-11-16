@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10213f">
+<title>COC Builder • Scanner Barcode</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#172033;font:16px Arial,sans-serif}header{background:#10213f;color:#fff;padding:16px;font-weight:700}main{max-width:680px;margin:auto;padding:14px}.card{background:#fff;border:1px solid #d9e1ec;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 3px 14px #14233b0b}h1{font-size:20px;margin:0 0 6px}p{font-size:13px;line-height:1.45;color:#536176}#meta{margin:8px 0 12px;color:#475569;font-size:13px}#status{padding:11px 12px;border-radius:9px;background:#edf3ff;color:#254b9b;font-size:14px}#reader{width:100%;min-height:260px;overflow:hidden;border-radius:12px;background:#101827}#reader video{object-fit:cover!important;border-radius:12px}button{border:0;border-radius:10px;padding:13px 15px;font-weight:700;font-size:15px;cursor:pointer}.primary{background:#2457df;color:#fff;flex:1}.secondary{background:#e8edf5;color:#172033}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}#result{font-size:23px;font-weight:700;word-break:break-all;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-top:12px;min-height:50px}.muted{color:#64748b;font-size:12px}.hidden{display:none!important}a{color:#2457df}
+</style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+<header>📷 COC Builder — Scanner Barcode Produk</header>
+<main>
+<section class="card">
+<h1>Scan SKU per shelf</h1>
+<div id="meta">Mempersiapkan scanner…</div>
+<div id="status" role="status">Membuka kamera belakang. Izinkan akses kamera jika browser meminta.</div>
+</section>
+<section class="card">
+<div id="reader"></div>
+<div id="result" aria-live="polite">Belum ada barcode terbaca</div>
+<div class="row">
+<button class="primary" id="start">Mulai / Buka kamera</button>
+<button class="secondary" id="next" disabled>Scan berikutnya</button>
+<button class="secondary" id="close">Tutup</button>
+</div>
+<p>Arahkan barcode produk ke kotak pemindai. Pastikan barcode fokus dan mendapat cahaya cukup. Setiap hasil akan otomatis dikirim ke shelf yang dipilih di COC Builder.</p>
+<p class="muted">Kamera berjalan pada halaman HTTPS GitHub Pages. Hasil barcode hanya dikirim ke tab COC Builder yang membuka halaman ini.</p>
+</section>
+</main>
+<script>
+(() => {
+ "use strict";
+ const q=new URLSearchParams(location.search), token=q.get("token")||"", target=q.get("target")||"";
+ const $=id=>document.getElementById(id), statusEl=$("status"), resultEl=$("result");
+ const title=q.get("title")||"Scan SKU", store=q.get("store")||"", shelf=q.get("shelf")||"";
+ $("meta").textContent=title+(store?" • Toko "+store:"")+(shelf?" • Shelf "+shelf:"");
+ let scanner=null, running=false, locked=false, lastCode="", lastAt=0;
+ function status(s,bad=false){statusEl.textContent=s;statusEl.style.background=bad?"#fff0f0":"#edf3ff";statusEl.style.color=bad?"#9b2525":"#254b9b"}
+ function sendCode(code){
+  if(!token||!target||!window.opener||window.opener.closed){status("Sesi COC Builder tidak ditemukan. Tutup halaman ini lalu buka scanner dari tombol Scan Barcode di COC Builder.",true);return false}
+  try{window.opener.postMessage({type:"COC_BARCODE_SCAN_RESULT",token,code,store,bay:q.get("bay")||"",shelf,capturedAt:new Date().toISOString()},target);return true}
+  catch(e){status("Gagal mengirim barcode ke COC Builder: "+e.message,true);return false}
+ }
+ async function stop(){if(scanner&&running){try{await scanner.stop()}catch{}running=false}}
+ async function start(){
+  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia||!window.Html5Qrcode){status("Scanner tidak tersedia. Pastikan halaman dibuka melalui HTTPS dan koneksi internet aktif.",true);return}
+  await stop();locked=false;$("next").disabled=true;resultEl.textContent="Arahkan barcode ke kamera…";
+  try{
+   if(!scanner) scanner=new Html5Qrcode("reader",{verbose:false});
+   await scanner.start({facingMode:"environment"},{fps:12,qrbox:(w,h)=>({width:Math.floor(Math.min(w*.88,460)),height:Math.floor(Math.min(h*.42,190))}),aspectRatio:1.7777778},(decodedText)=>{
+    const code=String(decodedText||"").trim();if(!code||locked)return;
+    const now=Date.now();if(code===lastCode&&now-lastAt<1800)return;
+    lastCode=code;lastAt=now;locked=true;resultEl.textContent=code;
+    if(sendCode(code))status("Barcode "+code+" berhasil dikirim ke COC Builder. Tekan Scan berikutnya untuk produk selanjutnya.");
+    else status("Barcode terbaca, tetapi belum dapat dikirim. Buka scanner dari tombol di aplikasi.",true);
+    $("next").disabled=false;
+   },()=>{});
+   running=true;status("Kamera aktif. Arahkan barcode produk ke area scan.");
+  }catch(e){running=false;status("Kamera gagal dibuka: "+(e.message||e)+". Periksa izin kamera browser, lalu tekan Mulai / Buka kamera.",true)}
+ }
+ $("start").onclick=start;
+ $("next").onclick=()=>start();
+ $("close").onclick=async()=>{await stop();window.close();status("Scanner dihentikan. Anda dapat kembali ke tab COC Builder.")};
+ window.addEventListener("pagehide",()=>{stop()});
+ if(!token||!target){status("Sesi tidak valid. Buka scanner melalui tombol Scan Barcode di menu Scan SKU COC Builder.",true)}
+ else setTimeout(start,350);
+})();
+</script>
+</body>
+</html>
